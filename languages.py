@@ -1,102 +1,59 @@
 LANGUAGES = {
-    'en': {
-        'name': 'English',
-        'start': "Welcome to Jambo! Please choose your role:",
-        'choose_language': "Choose your language:",
+    "en": {
+        "language_name": "English",
+        "welcome": "Welcome to Jambo!",
+        "choose_role": "Please choose your role:",
+        "driver": "Driver",
+        "passenger": "Passenger",
+        "taxi": "Taxi service"
     },
-    'ru': {
-        'name': 'Русский',
-        'start': "Добро пожаловать в Jambo! Пожалуйста, выберите свою роль:",
-        'choose_language': "Выберите язык:",
+    "ru": {
+        "language_name": "Русский",
+        "welcome": "Добро пожаловать в Jambo!",
+        "choose_role": "Пожалуйста, выберите роль:",
+        "driver": "Водитель (попутчик)",
+        "passenger": "Пассажир",
+        "taxi": "Такси по городу"
     },
-    'uk': {
-        'name': 'Українська',
-        'start': "Ласкаво просимо до Jambo! Виберіть свою роль:",
-        'choose_language': "Виберіть мову:",
+    "uz": {
+        "language_name": "O‘zbekcha",
+        "welcome": "Jambo xizmatiga xush kelibsiz!",
+        "choose_role": "Iltimos, o‘zingizga mos rolni tanlang:",
+        "driver": "Haydovchi (yo‘lovchi bilan)",
+        "passenger": "Yo‘lovchi",
+        "taxi": "Shahar ichidagi taksi"
     },
-    'uz': {
-        'name': 'Oʻzbekcha',
-        'start': "Jambo'ga xush kelibsiz! Iltimos, rolingizni tanlang:",
-        'choose_language': "Tilni tanlang:",
+    "kk": {
+        "language_name": "Қазақша",
+        "welcome": "Jambo қосымшасына қош келдіңіз!",
+        "choose_role": "Рөлді таңдаңыз:",
+        "driver": "Жолаушы жүргізуші",
+        "passenger": "Жолаушы",
+        "taxi": "Қалалық такси"
     },
-    'kk': {
-        'name': 'Қазақша',
-        'start': "Jambo-ға қош келдіңіз! Рөліңізді таңдаңыз:",
-        'choose_language': "Тілді таңдаңыз:",
+    "tr": {
+        "language_name": "Türkçe",
+        "welcome": "Jambo'ya hoş geldiniz!",
+        "choose_role": "Lütfen bir rol seçin:",
+        "driver": "Sürücü (yolcu ile)",
+        "passenger": "Yolcu",
+        "taxi": "Şehir içi taksi"
     },
-    'tr': {
-        'name': 'Türkçe',
-        'start': "Jambo'ya hoş geldiniz! Lütfen rolünüzü seçin:",
-        'choose_language': "Dil seçin:",
+    "es": {
+        "language_name": "Español",
+        "welcome": "¡Bienvenido a Jambo!",
+        "choose_role": "Por favor selecciona tu rol:",
+        "driver": "Conductor (compartido)",
+        "passenger": "Pasajero",
+        "taxi": "Taxi en la ciudad"
     },
-    'de': {
-        'name': 'Deutsch',
-        'start': "Willkommen bei Jambo! Bitte wählen Sie Ihre Rolle:",
-        'choose_language': "Sprache auswählen:",
-    },
-    'fr': {
-        'name': 'Français',
-        'start': "Bienvenue chez Jambo ! Veuillez choisir votre rôle :",
-        'choose_language': "Choisissez la langue :",
-    },
-    'es': {
-        'name': 'Español',
-        'start': "¡Bienvenido a Jambo! Por favor, elige tu rol:",
-        'choose_language': "Elige un idioma:",
-    },
-    'pt': {
-        'name': 'Português',
-        'start': "Bem-vindo ao Jambo! Por favor, escolha seu papel:",
-        'choose_language': "Escolha o idioma:",
-    },
-    'ar': {
-        'name': 'العربية',
-        'start': "مرحبًا بك في Jambo! الرجاء اختيار دورك:",
-        'choose_language': "اختر اللغة:",
-    },
-    'zh': {
-        'name': '中文',
-        'start': "欢迎使用 Jambo！请选择您的角色：",
-        'choose_language': "选择语言：",
-    },
-    'hi': {
-        'name': 'हिन्दी',
-        'start': "Jambo में आपका स्वागत है! कृपया अपनी भूमिका चुनें:",
-        'choose_language': "भाषा चुनें:",
-    },
-    'bn': {
-        'name': 'বাংলা',
-        'start': "Jambo-তে স্বাগতম! অনুগ্রহ করে আপনার ভূমিকা নির্বাচন করুন:",
-        'choose_language': "ভাষা নির্বাচন করুন:",
-    },
-    'fa': {
-        'name': 'فارسی',
-        'start': "به Jambo خوش آمدید! لطفاً نقش خود را انتخاب کنید:",
-        'choose_language': "زبان را انتخاب کنید:",
-    },
-    'az': {
-        'name': 'Azərbaycan',
-        'start': "Jambo-ya xoş gəlmisiniz! Zəhmət olmasa rolunuzu seçin:",
-        'choose_language': "Dili seçin:",
-    },
-    'ro': {
-        'name': 'Română',
-        'start': "Bine ați venit la Jambo! Vă rugăm să vă alegeți rolul:",
-        'choose_language': "Alegeți limba:",
-    },
-    'pl': {
-        'name': 'Polski',
-        'start': "Witamy w Jambo! Proszę wybrać swoją rolę:",
-        'choose_language': "Wybierz język:",
-    },
-    'tg': {
-        'name': 'Тоҷикӣ',
-        'start': "Хуш омадед ба Jambo! Лутфан нақши худро интихоб кунед:",
-        'choose_language': "Забонро интихоб кунед:",
-    },
-    'hy': {
-        'name': 'Հայերեն',
-        'start': "Բարի գալուստ Jambo։ Խնդրում ենք ընտրել ձեր դերը։",
-        'choose_language': "Ընտրեք լեզուն՝",
+    "fr": {
+        "language_name": "Français",
+        "welcome": "Bienvenue sur Jambo !",
+        "choose_role": "Veuillez choisir votre rôle :",
+        "driver": "Conducteur",
+        "passenger": "Passager",
+        "taxi": "Taxi urbain"
     }
+    # Добавим больше языков позже
 }
