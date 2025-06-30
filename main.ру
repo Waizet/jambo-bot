@@ -1,80 +1,96 @@
+# main.py
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils import executor
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher import FSMContext
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-import languages
+from languages import LANGUAGES
 
+# 🔐 Токен бота (замени при необходимости)
 API_TOKEN = '7996715950:AAGGMdqSfG08ulx0zQ_eSHJ3NTB3uzcegAA'
 
-# Включаем логирование
+# 🔧 Логирование
 logging.basicConfig(level=logging.INFO)
 
-# Инициализация
+# 🔄 Инициализация бота и диспетчера
 bot = Bot(token=API_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+dp = Dispatcher(bot)
 
-# Хранилище пользователей
-user_data = {}
+# 🌐 Словарь выбора языка {user_id: lang_code}
+user_languages = {}
 
-# FSM для выбора языка и роли
-class Form(StatesGroup):
-    choosing_language = State()
-    choosing_role = State()
+# 🔘 Кнопки выбора языка
+def get_language_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    row = []
+    count = 0
+    for code, lang in LANGUAGES.items():
+        row.append(KeyboardButton(lang["name"]))
+        count += 1
+        if count % 2 == 0:
+            kb.add(*row)
+            row = []
+    if row:
+        kb.add(*row)
+    return kb
 
-# Команда /start
+# 🔁 Функция получения перевода
+def t(user_id, key):
+    lang_code = user_languages.get(user_id, 'en')
+    return LANGUAGES.get(lang_code, LANGUAGES['en'])['messages'].get(key, key)
+
+# 🚀 Обработка команды /start
 @dp.message_handler(commands=['start'])
-async def cmd_start(message: types.Message, state: FSMContext):
+async def start_handler(message: types.Message):
+    user_id = message.from_user.id
+    await message.answer("🌍 Please select your language / Пожалуйста, выберите язык:", reply_markup=get_language_keyboard())
+
+# 🌍 Установка языка пользователя
+@dp.message_handler(lambda message: message.text in [lang["name"] for lang in LANGUAGES.values()])
+async def set_language_handler(message: types.Message):
+    user_id = message.from_user.id
+    for code, lang in LANGUAGES.items():
+        if message.text == lang["name"]:
+            user_languages[user_id] = code
+            await message.answer(lang["messages"]["language_selected"])
+            await show_main_menu(message, code)
+            return
+
+# 🏠 Главное меню
+async def show_main_menu(message, lang_code):
+    tr = LANGUAGES[lang_code]["messages"]
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    for lang in languages.languages:
-        kb.add(KeyboardButton(lang))
-    await message.answer("🌍 Please choose your language / Пожалуйста, выберите язык:", reply_markup=kb)
-    await Form.choosing_language.set()
+    kb.add(
+        KeyboardButton(tr["companion"]),
+        KeyboardButton(tr["passenger"]),
+    )
+    kb.add(
+        KeyboardButton(tr["taxi"]),
+        KeyboardButton(tr["delivery"]),
+    )
+    kb.add(KeyboardButton(tr["help"]))
+    await message.answer(tr["main_menu"], reply_markup=kb)
 
-# Обработка выбора языка
-@dp.message_handler(state=Form.choosing_language)
-async def choose_language(message: types.Message, state: FSMContext):
-    lang = message.text
-    if lang not in languages.languages:
-        await message.answer("❌ Invalid language. Please choose from the list.")
-        return
-    await state.update_data(language=lang)
-    user_data[message.from_user.id] = {"language": lang}
-    await ask_role(message, lang)
-    await Form.choosing_role.set()
-
-# Функция запроса роли
-async def ask_role(message, lang):
-    text = languages.texts[lang]['choose_role']
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add(KeyboardButton(languages.texts[lang]['driver']))
-    kb.add(KeyboardButton(languages.texts[lang]['passenger']))
-    kb.add(KeyboardButton(languages.texts[lang]['taxi']))
-    await message.answer(text, reply_markup=kb)
-
-# Обработка выбора роли
-@dp.message_handler(state=Form.choosing_role)
-async def choose_role(message: types.Message, state: FSMContext):
-    user = user_data.get(message.from_user.id, {})
-    lang = user.get("language", "English")
-    role_text = message.text
-
-    texts = languages.texts[lang]
-    if role_text == texts['driver']:
-        await message.answer(texts['driver_confirm'])
-    elif role_text == texts['passenger']:
-        await message.answer(texts['passenger_confirm'])
-    elif role_text == texts['taxi']:
-        await message.answer(texts['taxi_confirm'])
+# 📦 Заглушки для кнопок главного меню
+@dp.message_handler(lambda message: True)
+async def main_menu_handler(message: types.Message):
+    user_id = message.from_user.id
+    lang_code = user_languages.get(user_id, 'en')
+    tr = LANGUAGES[lang_code]["messages"]
+    
+    text = message.text
+    if text == tr["companion"]:
+        await message.answer(tr["companion_selected"])
+    elif text == tr["passenger"]:
+        await message.answer(tr["passenger_selected"])
+    elif text == tr["taxi"]:
+        await message.answer(tr["taxi_selected"])
+    elif text == tr["delivery"]:
+        await message.answer(tr["delivery_selected"])
+    elif text == tr["help"]:
+        await message.answer(tr["help_text"])
     else:
-        await message.answer(texts['invalid_option'])
-        return
+        await message.answer(tr["unknown_command"])
 
-    await state.finish()
-
-# Запуск
+# 🔄 Запуск
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
