@@ -1,0 +1,80 @@
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.utils import executor
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+import languages
+
+API_TOKEN = '7996715950:AAGGMdqSfG08ulx0zQ_eSHJ3NTB3uzcegAA'
+
+# Включаем логирование
+logging.basicConfig(level=logging.INFO)
+
+# Инициализация
+bot = Bot(token=API_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
+
+# Хранилище пользователей
+user_data = {}
+
+# FSM для выбора языка и роли
+class Form(StatesGroup):
+    choosing_language = State()
+    choosing_role = State()
+
+# Команда /start
+@dp.message_handler(commands=['start'])
+async def cmd_start(message: types.Message, state: FSMContext):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    for lang in languages.languages:
+        kb.add(KeyboardButton(lang))
+    await message.answer("🌍 Please choose your language / Пожалуйста, выберите язык:", reply_markup=kb)
+    await Form.choosing_language.set()
+
+# Обработка выбора языка
+@dp.message_handler(state=Form.choosing_language)
+async def choose_language(message: types.Message, state: FSMContext):
+    lang = message.text
+    if lang not in languages.languages:
+        await message.answer("❌ Invalid language. Please choose from the list.")
+        return
+    await state.update_data(language=lang)
+    user_data[message.from_user.id] = {"language": lang}
+    await ask_role(message, lang)
+    await Form.choosing_role.set()
+
+# Функция запроса роли
+async def ask_role(message, lang):
+    text = languages.texts[lang]['choose_role']
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add(KeyboardButton(languages.texts[lang]['driver']))
+    kb.add(KeyboardButton(languages.texts[lang]['passenger']))
+    kb.add(KeyboardButton(languages.texts[lang]['taxi']))
+    await message.answer(text, reply_markup=kb)
+
+# Обработка выбора роли
+@dp.message_handler(state=Form.choosing_role)
+async def choose_role(message: types.Message, state: FSMContext):
+    user = user_data.get(message.from_user.id, {})
+    lang = user.get("language", "English")
+    role_text = message.text
+
+    texts = languages.texts[lang]
+    if role_text == texts['driver']:
+        await message.answer(texts['driver_confirm'])
+    elif role_text == texts['passenger']:
+        await message.answer(texts['passenger_confirm'])
+    elif role_text == texts['taxi']:
+        await message.answer(texts['taxi_confirm'])
+    else:
+        await message.answer(texts['invalid_option'])
+        return
+
+    await state.finish()
+
+# Запуск
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
