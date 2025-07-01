@@ -1,5 +1,2 @@
-setuptools
-wheel
+aiogram==2.25.1
 aiohttp
-aiogram
-googletrans==4.0.0-rc1
