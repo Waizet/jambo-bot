@@ -3,23 +3,26 @@ import os
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.utils import executor
+from aiogram.dispatcher.webhook import get_new_configured_app
+from aiohttp import web
 from languages import LANGUAGES
 
-# 🔐 Токен из переменных окружения Railway
 API_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_HOST = os.getenv("RENDER_EXTERNAL_URL")
+WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+WEBAPP_HOST = "0.0.0.0"
+WEBAPP_PORT = int(os.getenv("PORT", 8000))
 
-# 🔧 Логирование
 logging.basicConfig(level=logging.INFO)
 
-# 🔄 Инициализация бота и диспетчера
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
+app = web.Application()
+app.router.add_post(WEBHOOK_PATH, get_new_configured_app(dispatcher=dp, bot=bot))
 
-# 🌐 Словарь выбора языка {user_id: lang_code}
 user_languages = {}
 
-# 🔘 Кнопки выбора языка
 def get_language_keyboard():
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     row = []
@@ -34,18 +37,14 @@ def get_language_keyboard():
         kb.add(*row)
     return kb
 
-# 🔁 Функция получения перевода
 def t(user_id, key):
     lang_code = user_languages.get(user_id, 'en')
     return LANGUAGES.get(lang_code, LANGUAGES['en'])['messages'].get(key, key)
 
-# 🚀 Обработка команды /start
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
-    user_id = message.from_user.id
     await message.answer("🌍 Please select your language / Пожалуйста, выберите язык:", reply_markup=get_language_keyboard())
 
-# 🌍 Установка языка пользователя
 @dp.message_handler(lambda message: message.text in [lang["name"] for lang in LANGUAGES.values()])
 async def set_language_handler(message: types.Message):
     user_id = message.from_user.id
@@ -56,7 +55,6 @@ async def set_language_handler(message: types.Message):
             await show_main_menu(message, code)
             return
 
-# 🏠 Главное меню
 async def show_main_menu(message, lang_code):
     tr = LANGUAGES[lang_code]["messages"]
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -71,13 +69,12 @@ async def show_main_menu(message, lang_code):
     kb.add(KeyboardButton(tr["help"]))
     await message.answer(tr["main_menu"], reply_markup=kb)
 
-# 📦 Заглушки для кнопок главного меню
 @dp.message_handler(lambda message: True)
 async def main_menu_handler(message: types.Message):
     user_id = message.from_user.id
     lang_code = user_languages.get(user_id, 'en')
     tr = LANGUAGES[lang_code]["messages"]
-    
+
     text = message.text
     if text == tr["companion"]:
         await message.answer(tr["companion_selected"])
@@ -92,6 +89,10 @@ async def main_menu_handler(message: types.Message):
     else:
         await message.answer(tr["unknown_command"])
 
-# 🔄 Запуск
+async def on_startup(app):
+    await bot.set_webhook(WEBHOOK_URL)
+
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    logging.info(f"Starting bot on {WEBHOOK_URL}")
+    app.on_startup.append(on_startup)
+    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
