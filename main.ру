@@ -1,98 +1,69 @@
-# main.py
-import os
 import logging
+import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.dispatcher.webhook import get_new_configured_app
-from aiohttp import web
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils import executor
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from languages import LANGUAGES
 
-API_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_HOST = os.getenv("RENDER_EXTERNAL_URL")
-WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
-WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
-WEBAPP_HOST = "0.0.0.0"
-WEBAPP_PORT = int(os.getenv("PORT", 8000))
+API_TOKEN = '7996715950:AAGGMdqSfG08ulx0zQ_eSHJ3NTB3uzcegAA'
+ADMIN_ID = 5252767835
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
-app = web.Application()
-app.router.add_post(WEBHOOK_PATH, get_new_configured_app(dispatcher=dp, bot=bot))
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 user_languages = {}
 
-def get_language_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    row = []
-    count = 0
-    for code, lang in LANGUAGES.items():
-        row.append(KeyboardButton(lang["name"]))
-        count += 1
-        if count % 2 == 0:
-            kb.add(*row)
-            row = []
-    if row:
-        kb.add(*row)
-    return kb
-
-def t(user_id, key):
-    lang_code = user_languages.get(user_id, 'en')
-    return LANGUAGES.get(lang_code, LANGUAGES['en'])['messages'].get(key, key)
+def get_message(user_id, key):
+    lang = user_languages.get(user_id, 'en')
+    return LANGUAGES.get(lang, LANGUAGES['en'])['messages'].get(key, "❗ Missing message")
 
 @dp.message_handler(commands=['start'])
-async def start_handler(message: types.Message):
-    await message.answer("🌍 Please select your language / Пожалуйста, выберите язык:", reply_markup=get_language_keyboard())
+async def cmd_start(message: types.Message):
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    for code, data in LANGUAGES.items():
+        keyboard.insert(InlineKeyboardButton(text=data['name'], callback_data=f"lang_{code}"))
+    await message.answer("🌍 Please select your language / Пожалуйста, выберите язык:", reply_markup=keyboard)
 
-@dp.message_handler(lambda message: message.text in [lang["name"] for lang in LANGUAGES.values()])
-async def set_language_handler(message: types.Message):
-    user_id = message.from_user.id
-    for code, lang in LANGUAGES.items():
-        if message.text == lang["name"]:
-            user_languages[user_id] = code
-            await message.answer(lang["messages"]["language_selected"])
-            await show_main_menu(message, code)
-            return
+@dp.callback_query_handler(lambda c: c.data.startswith('lang_'))
+async def language_selected(callback_query: types.CallbackQuery):
+    lang_code = callback_query.data.split('_')[1]
+    user_languages[callback_query.from_user.id] = lang_code
+    msg = get_message(callback_query.from_user.id, "language_selected")
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, msg)
+    await show_main_menu(callback_query.from_user.id)
 
-async def show_main_menu(message, lang_code):
-    tr = LANGUAGES[lang_code]["messages"]
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add(
-        KeyboardButton(tr["companion"]),
-        KeyboardButton(tr["passenger"]),
+async def show_main_menu(user_id):
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        InlineKeyboardButton(text=get_message(user_id, "companion"), callback_data="role_companion"),
+        InlineKeyboardButton(text=get_message(user_id, "passenger"), callback_data="role_passenger"),
+        InlineKeyboardButton(text=get_message(user_id, "taxi"), callback_data="role_taxi"),
+        InlineKeyboardButton(text=get_message(user_id, "delivery"), callback_data="role_delivery"),
+        InlineKeyboardButton(text=get_message(user_id, "help"), callback_data="role_help")
     )
-    kb.add(
-        KeyboardButton(tr["taxi"]),
-        KeyboardButton(tr["delivery"]),
-    )
-    kb.add(KeyboardButton(tr["help"]))
-    await message.answer(tr["main_menu"], reply_markup=kb)
+    await bot.send_message(user_id, get_message(user_id, "main_menu"), reply_markup=keyboard)
 
-@dp.message_handler(lambda message: True)
-async def main_menu_handler(message: types.Message):
-    user_id = message.from_user.id
-    lang_code = user_languages.get(user_id, 'en')
-    tr = LANGUAGES[lang_code]["messages"]
+@dp.callback_query_handler(lambda c: c.data.startswith('role_'))
+async def role_selected(callback_query: types.CallbackQuery):
+    role = callback_query.data.split('_')[1]
+    user_id = callback_query.from_user.id
+    key = f"{role}_selected"
+    msg = get_message(user_id, key)
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(user_id, msg)
 
-    text = message.text
-    if text == tr["companion"]:
-        await message.answer(tr["companion_selected"])
-    elif text == tr["passenger"]:
-        await message.answer(tr["passenger_selected"])
-    elif text == tr["taxi"]:
-        await message.answer(tr["taxi_selected"])
-    elif text == tr["delivery"]:
-        await message.answer(tr["delivery_selected"])
-    elif text == tr["help"]:
-        await message.answer(tr["help_text"])
-    else:
-        await message.answer(tr["unknown_command"])
+@dp.message_handler()
+async def unknown_message(message: types.Message):
+    await message.answer(get_message(message.from_user.id, "unknown_command"))
 
-async def on_startup(app):
-    await bot.set_webhook(WEBHOOK_URL)
-
+# For polling (Render compatible, since we’re not using webhooks here)
 if __name__ == '__main__':
-    logging.info(f"Starting bot on {WEBHOOK_URL}")
-    app.on_startup.append(on_startup)
-    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
+    try:
+        executor.start_polling(dp, skip_updates=True)
+    except Exception as e:
+        logging.error(f"Failed to start polling: {e}")
