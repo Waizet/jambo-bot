@@ -1,12 +1,13 @@
 # main.py
+import os
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils import executor
 from languages import LANGUAGES
 
-# 🔐 Токен бота (замени при необходимости)
-API_TOKEN = '7996715950:AAGGMdqSfG08ulx0zQ_eSHJ3NTB3uzcegAA'
+# 🔐 Токен из переменных окружения Railway
+API_TOKEN = os.getenv("BOT_TOKEN")
 
 # 🔧 Логирование
 logging.basicConfig(level=logging.INFO)
